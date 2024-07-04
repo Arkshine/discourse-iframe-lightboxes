@@ -2,6 +2,7 @@ import { apiInitializer } from "discourse/lib/api";
 import loadScript from "discourse/lib/load-script";
 import { iconHTML } from "discourse-common/lib/icon-library";
 import featherlight from "../vendor/featherlight";
+import { next } from "@ember/runloop";
 
 export default apiInitializer("0.8", (api) => {
   try {
@@ -36,17 +37,25 @@ export default apiInitializer("0.8", (api) => {
 
     api.decorateCookedElement(
       (post) => {
-        const iframes = post.querySelectorAll("iframe");
+        next(() => {
+          const iframes = post.querySelectorAll("iframe");
 
-        iframes.forEach((iframe, index) => {
-          const shouldLightbox = new RegExp(targetIframeDomains).test(
-            iframe.src
-          );
+          iframes.forEach((iframe) => {
+            iframe.onload = () => {
+              if (!iframe.src) {
+                return;
+              }
 
-          if (shouldLightbox) {
-            iframe.id = iframe.id || Math.floor(Math.random() * 1000);
-            iframe.parentNode.insertBefore(expandButton(iframe.id), iframe);
-          }
+              const shouldLightbox = new RegExp(targetIframeDomains).test(
+                iframe.src
+              );
+
+              if (shouldLightbox) {
+                iframe.id = iframe.id || Math.floor(Math.random() * 1000);
+                iframe.parentNode.insertBefore(expandButton(iframe.id), iframe);
+              }
+            };
+          });
         });
       },
       { id: "iframe-lightboxes" }
